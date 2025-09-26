@@ -20,8 +20,9 @@ Uint8List preloadBytes = Uint8List.fromList([]);
 
 /// [WebcontentConverter] will convert html, html file, web uri, into raw bytes image or pdf file
 class WebcontentConverter {
-  static const MethodChannel _channel =
-      const MethodChannel('webcontent_converter');
+  static const MethodChannel _channel = const MethodChannel(
+    'webcontent_converter',
+  );
 
   static Future<String?> get platformVersion async {
     final String? version = await _channel.invokeMethod('getPlatformVersion');
@@ -34,7 +35,9 @@ class WebcontentConverter {
   }) async {
     if (windowBrower == null || windowBrower?.isConnected != true) {
       await WebcontentConverter.initWebcontentConverter(
-          executablePath: executablePath, content: content);
+        executablePath: executablePath,
+        content: content,
+      );
     }
   }
 
@@ -49,8 +52,9 @@ class WebcontentConverter {
         );
       }
     } else if (io.Platform.isAndroid || io.Platform.isIOS) {
-      preloadBytes =
-          await contentToImage(content: content ?? Demo.getReceiptContent());
+      preloadBytes = await contentToImage(
+        content: content ?? Demo.getReceiptContent(),
+      );
     }
 
     WebcontentConverter.logger.debug('webcontent converter initialized');
@@ -60,8 +64,9 @@ class WebcontentConverter {
     bool isClosePage = true,
     bool isCloseBrower = true,
   }) async {
-    WebcontentConverter.logger
-        .debug('webcontent converter deinitWebcontentConverter');
+    WebcontentConverter.logger.debug(
+      'webcontent converter deinitWebcontentConverter',
+    );
     if (isCloseBrower) await windowBrower?.close();
   }
 
@@ -79,7 +84,7 @@ class WebcontentConverter {
       LevelMessages.debug,
       LevelMessages.info,
       LevelMessages.error,
-      LevelMessages.warning
+      LevelMessages.warning,
     ],
   );
 
@@ -206,32 +211,73 @@ class WebcontentConverter {
             /// if window browser is null
             if (windowBrower == null || windowBrower?.isConnected != true) {
               windowBrower = await pp.puppeteer.launch(
-                  headless: true,
-                  executablePath:
-                      executablePath ?? WebViewHelper.executablePath());
+                headless: true,
+                executablePath:
+                    executablePath ?? WebViewHelper.executablePath(),
+              );
             }
 
             /// if window browser page is null
-            windowBrowserPage = await windowBrower!.newPage();
-            await windowBrowserPage.setContent(content, wait: pp.Until.load);
-            windowBrowserPage
-                .setViewport(pp.DeviceViewport(deviceScaleFactor: scale));
-            await windowBrowserPage.emulateMediaType(pp.MediaType.print);
-            var offsetHeight =
-                await windowBrowserPage.evaluate('document.body.offsetHeight');
-            var offsetWidth =
-                await windowBrowserPage.evaluate('document.body.offsetWidth');
+            ///
+            try {
+              windowBrowserPage = await windowBrower!.newPage();
+            } catch (ex) {
+              throw 'windowBrower.newPage -  $ex';
+              rethrow;
+            }
+            try {
+              await windowBrowserPage.setContent(content, wait: pp.Until.load);
+            } catch (ex) {
+              throw 'windowBrowserPage.setContent -  $ex';
+              rethrow;
+            }
+            windowBrowserPage.setViewport(
+              pp.DeviceViewport(deviceScaleFactor: scale),
+            );
+            try {
+              await windowBrowserPage.emulateMediaType(pp.MediaType.print);
+            } catch (ex) {
+              throw 'windowBrowserPage.emulateMediaType -  $ex';
+              rethrow;
+            }
+
+            double offsetHeight = 0.0;
+            double offsetWidth = 0.0;
+            try {
+              offsetHeight = await windowBrowserPage.evaluate<double>(
+                'document.body.offsetHeight',
+              );
+            } catch (ex) {
+              throw 'document.body.offsetHeight -  $ex';
+              rethrow;
+            }
+            try {
+              offsetWidth = await windowBrowserPage.evaluate<double>(
+                'document.body.offsetWidth',
+              );
+            } catch (ex) {
+              throw 'document.body.offsetWidth -  $ex';
+            }
+            if (offsetHeight == 0 || offsetWidth == 0) {
+              throw 'document.body errr';
+            }
+
             results = await windowBrowserPage.screenshot(
               format: pp.ScreenshotFormat.png,
               clip: pp.Rectangle.fromPoints(
-                  pp.Point(0, 0), pp.Point(offsetWidth, offsetHeight)),
+                pp.Point(0, 0),
+                pp.Point(offsetWidth, offsetHeight),
+              ),
               fullPage: false,
               omitBackground: true,
             );
           } catch (e) {
+            rethrow;
           } finally {
-            await windowBrowserPage!.close();
-            windowBrowserPage = null;
+            if (windowBrowserPage != null) {
+              await windowBrowserPage!.close();
+              windowBrowserPage = null;
+            }
           }
         }
       } else {
@@ -385,25 +431,29 @@ class WebcontentConverter {
 
           /// if window browser is null
           windowBrower ??= await pp.puppeteer.launch(
-              headless: true,
-              executablePath: executablePath ?? WebViewHelper.executablePath());
+            headless: true,
+            executablePath: executablePath ?? WebViewHelper.executablePath(),
+          );
 
           /// if window browser page is null
           windowBrowserPage = await windowBrower!.newPage();
 
-          windowBrowserPage
-              .setViewport(pp.DeviceViewport(width: 800, height: 1000));
+          windowBrowserPage.setViewport(
+            pp.DeviceViewport(width: 800, height: 1000),
+          );
 
           /// await windowBrowserPage.emulateMediaType(pp.MediaType.print);
           /// await windowBrowserPage.emulate(pp.puppeteer.devices.laptopWithMDPIScreen);
           ///
-          await windowBrowserPage.setContent(content,
-              wait: pp.Until.all([
-                pp.Until.load,
-                pp.Until.domContentLoaded,
-                pp.Until.networkAlmostIdle,
-                pp.Until.networkIdle,
-              ]));
+          await windowBrowserPage.setContent(
+            content,
+            wait: pp.Until.all([
+              pp.Until.load,
+              pp.Until.domContentLoaded,
+              pp.Until.networkAlmostIdle,
+              pp.Until.networkIdle,
+            ]),
+          );
           await windowBrowserPage.pdf(
             format: pp.PaperFormat.inches(
               width: format.width,
@@ -487,25 +537,29 @@ class WebcontentConverter {
 
           /// if window browser is null
           windowBrower ??= await pp.puppeteer.launch(
-              headless: true,
-              executablePath: executablePath ?? WebViewHelper.executablePath());
+            headless: true,
+            executablePath: executablePath ?? WebViewHelper.executablePath(),
+          );
 
           /// if window browser page is null
           windowBrowserPage = await windowBrower!.newPage();
 
-          windowBrowserPage
-              .setViewport(pp.DeviceViewport(width: 800, height: 1000));
+          windowBrowserPage.setViewport(
+            pp.DeviceViewport(width: 800, height: 1000),
+          );
 
           /// await windowBrowserPage.emulateMediaType(pp.MediaType.print);
           /// await windowBrowserPage.emulate(pp.puppeteer.devices.laptopWithMDPIScreen);
           ///
-          await windowBrowserPage.setContent(content,
-              wait: pp.Until.all([
-                pp.Until.load,
-                pp.Until.domContentLoaded,
-                pp.Until.networkAlmostIdle,
-                pp.Until.networkIdle,
-              ]));
+          await windowBrowserPage.setContent(
+            content,
+            wait: pp.Until.all([
+              pp.Until.load,
+              pp.Until.domContentLoaded,
+              pp.Until.networkAlmostIdle,
+              pp.Until.networkIdle,
+            ]),
+          );
           result = await windowBrowserPage.pdf(
             format: pp.PaperFormat.inches(
               width: format.width,
@@ -545,65 +599,70 @@ class WebcontentConverter {
     double? height,
     Map<String, dynamic> args = const {},
   }) {
-    return Builder(builder: (context) {
-      final String viewType = 'webview-view-type';
-      // Pass parameters to the platform side.
-      final Map<String, dynamic> creationParams = <String, dynamic>{};
-      final _width = width ?? 1;
-      final _height = height ?? 1;
-      creationParams['width'] = _width;
-      creationParams['height'] = _height;
-      creationParams['content'] = content;
-      creationParams['url'] = url;
-      switch (defaultTargetPlatform) {
-        case TargetPlatform.android:
-          return SafeArea(
-            child: SizedBox(
-              width: _width,
-              height: height,
-              child: PlatformViewLink(
-                viewType: viewType,
-                surfaceFactory:
-                    (BuildContext context, PlatformViewController controller) {
-                  return AndroidViewSurface(
-                    controller: controller as AndroidViewController,
-                    gestureRecognizers: const <Factory<
-                        OneSequenceGestureRecognizer>>{},
-                    hitTestBehavior: PlatformViewHitTestBehavior.opaque,
-                  );
-                },
-                onCreatePlatformView: (PlatformViewCreationParams params) {
-                  return PlatformViewsService.initSurfaceAndroidView(
-                    id: params.id,
-                    viewType: viewType,
-                    layoutDirection: TextDirection.ltr,
-                    creationParams: creationParams,
-                    creationParamsCodec: StandardMessageCodec(),
-                  )
-                    ..addOnPlatformViewCreatedListener(
-                        params.onPlatformViewCreated)
-                    ..create();
-                },
+    return Builder(
+      builder: (context) {
+        final String viewType = 'webview-view-type';
+        // Pass parameters to the platform side.
+        final Map<String, dynamic> creationParams = <String, dynamic>{};
+        final _width = width ?? 1;
+        final _height = height ?? 1;
+        creationParams['width'] = _width;
+        creationParams['height'] = _height;
+        creationParams['content'] = content;
+        creationParams['url'] = url;
+        switch (defaultTargetPlatform) {
+          case TargetPlatform.android:
+            return SafeArea(
+              child: SizedBox(
+                width: _width,
+                height: height,
+                child: PlatformViewLink(
+                  viewType: viewType,
+                  surfaceFactory: (
+                    BuildContext context,
+                    PlatformViewController controller,
+                  ) {
+                    return AndroidViewSurface(
+                      controller: controller as AndroidViewController,
+                      gestureRecognizers: const <Factory<
+                          OneSequenceGestureRecognizer>>{},
+                      hitTestBehavior: PlatformViewHitTestBehavior.opaque,
+                    );
+                  },
+                  onCreatePlatformView: (PlatformViewCreationParams params) {
+                    return PlatformViewsService.initSurfaceAndroidView(
+                      id: params.id,
+                      viewType: viewType,
+                      layoutDirection: TextDirection.ltr,
+                      creationParams: creationParams,
+                      creationParamsCodec: StandardMessageCodec(),
+                    )
+                      ..addOnPlatformViewCreatedListener(
+                        params.onPlatformViewCreated,
+                      )
+                      ..create();
+                  },
+                ),
               ),
-            ),
-          );
-        case TargetPlatform.iOS:
-          return SafeArea(
-            child: SizedBox(
-              width: _width,
-              height: _width,
-              child: UiKitView(
-                viewType: viewType,
-                layoutDirection: TextDirection.ltr,
-                creationParams: creationParams,
-                creationParamsCodec: const StandardMessageCodec(),
+            );
+          case TargetPlatform.iOS:
+            return SafeArea(
+              child: SizedBox(
+                width: _width,
+                height: _width,
+                child: UiKitView(
+                  viewType: viewType,
+                  layoutDirection: TextDirection.ltr,
+                  creationParams: creationParams,
+                  creationParamsCodec: const StandardMessageCodec(),
+                ),
               ),
-            ),
-          );
-        default:
-          throw UnsupportedError("Unsupported platform view");
-      }
-    });
+            );
+          default:
+            throw UnsupportedError("Unsupported platform view");
+        }
+      },
+    );
   }
 
   static Future<bool> printPreview({
@@ -647,13 +706,15 @@ class WebcontentConverter {
         /// await page.emulateMediaType(pp.MediaType.print);
         /// await page.emulate(pp.puppeteer.devices.laptopWithMDPIScreen);
         if (url != null) {
-          await page.goto(url,
-              wait: pp.Until.all([
-                pp.Until.load,
-                pp.Until.domContentLoaded,
-                pp.Until.networkAlmostIdle,
-                pp.Until.networkIdle,
-              ]));
+          await page.goto(
+            url,
+            wait: pp.Until.all([
+              pp.Until.load,
+              pp.Until.domContentLoaded,
+              pp.Until.networkAlmostIdle,
+              pp.Until.networkIdle,
+            ]),
+          );
         }
 
         if (content != null) {
