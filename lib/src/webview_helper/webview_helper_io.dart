@@ -7,11 +7,11 @@ class WebViewHelper {
   static List<String> customBrowserPath = [];
 
   static List<String> get desktopBrowserAvailablePath => [
-        ...customBrowserPath,
-        if (io.Platform.isWindows) ...windowBrowserAvailablePath,
-        if (io.Platform.isMacOS) ...macosBrowserAvailablePath,
-        if (io.Platform.isLinux) ...linuxBrowserAvailablePath,
-      ];
+    ...customBrowserPath,
+    if (io.Platform.isWindows)...windowBrowserAvailablePath,
+    if (io.Platform.isMacOS) ...macosBrowserAvailablePath,
+    if (io.Platform.isLinux) ...linuxBrowserAvailablePath,
+  ];
 
   static List<String> get windowBrowserAvailablePath => [
         ChromiumInfoConfig.getLocalChromeExecutablePath(),
@@ -36,9 +36,8 @@ class WebViewHelper {
         io.Directory("chromium").absolute.path,
       ];
 
-  static List<String> get linuxBrowserAvailablePath => [
-        "/usr/bin/google-chrome",
-      ];
+  static List<String> get linuxBrowserAvailablePath =>
+      ["/usr/bin/google-chrome"];
 
   static bool get isChromeAvailable {
     List<String> paths = desktopBrowserAvailablePath;

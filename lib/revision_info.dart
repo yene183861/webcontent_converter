@@ -6,11 +6,10 @@ class RevisionInfo {
   final String folderPath;
   final int revision;
 
-  RevisionInfo({
-    required this.executablePath,
-    required this.folderPath,
-    required this.revision,
-  });
+  RevisionInfo(
+      {required this.executablePath,
+      required this.folderPath,
+      required this.revision});
 }
 
 class ChromiumInfoConfig {
@@ -22,29 +21,18 @@ class ChromiumInfoConfig {
     } else if (io.Platform.isLinux) {
       return p.join(revisionPath, 'chrome-linux', 'chrome');
     } else if (io.Platform.isMacOS) {
-      return p.join(
-        revisionPath,
-        'chrome-mac',
-        'Chromium.app',
-        'Contents',
-        'MacOS',
-        'Chromium',
-      );
+      return p.join(revisionPath, 'chrome-mac', 'Chromium.app', 'Contents',
+          'MacOS', 'Chromium');
     } else {
       throw UnsupportedError('Unknown platform ${io.Platform.operatingSystem}');
     }
   }
 
-  static String localChromiumDirectory = p.joinAll([
-    "assets",
-    ".local-chromium",
-  ]);
+  static String localChromiumDirectory =
+      p.joinAll(["assets", ".local-chromium"]);
 
   static String getLocalChromeExecutablePath() {
-    return io.Directory(
-      ChromiumInfoConfig.getExecutablePath(
-        p.joinAll([localChromiumDirectory, "$lastRevision"]),
-      ),
-    ).absolute.path;
+    return io.Directory(ChromiumInfoConfig.getExecutablePath(
+        p.joinAll([localChromiumDirectory, "$lastRevision"]))).absolute.path;
   }
 }
